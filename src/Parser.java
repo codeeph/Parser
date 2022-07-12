@@ -5,9 +5,12 @@ import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class Parser {
     public final String URL_CRYPTO = "https://myfin.by/crypto-rates";
+    public final String URL_NEWS = "https://ria.ru/";
+    public final String URL_WEATHER = "https://www.gismeteo.ru/catalog/russia/";
     public String title;
     private String Url = "";
     private Document document;
@@ -62,6 +65,7 @@ public class Parser {
             doc = Jsoup.connect(URL_CRYPTO).get();
         } catch (Exception e) {
             System.out.printf("Произошла непредвиденная ошибка при загрузке страницы:\n%s\n",e.getMessage());
+            return;
         }
         Elements tdElements = doc.select("td");
         Elements refElements = doc.select("a");
@@ -79,5 +83,29 @@ public class Parser {
         System.out.printf("Актуальные цены криптовалют с сайта - <%s>:\n",URL_CRYPTO);
         for (int i = 0; i < prices.size(); i++)
             System.out.printf("%s  -  %s\n",names.get(i),prices.get(i));
+    }
+    public void GetNews()
+    {
+        Document doc = null;
+        try {
+            doc = Jsoup.connect(URL_NEWS).get();
+        } catch (Exception e) {
+            System.out.printf("Произошла непредвиденная ошибка при загрузке страницы:\n%s\n",e.getMessage());
+            return;
+        }
+        Elements refElements = doc.select("a");
+        ArrayList<String> titlesNews = new ArrayList<String>();
+        ArrayList<String> refNews = new ArrayList<String>();
+        for (int i = 0; i < refElements.size(); i++)
+        {
+            if (refElements.get(i).hasClass("cell-list__item-link color-font-hover-only"))
+            {
+                refNews.add(refElements.get(i).attr("href"));
+                titlesNews.add(refElements.get(i).attr("title"));
+            }
+        }
+        System.out.printf("Новости с сайта - <%s>:\n",URL_NEWS);
+        for(int i = 0; i < titlesNews.size(); i++)
+            System.out.printf("%d.Заголовок - <%s>.\tСсылка на новость - <%s>\n",i,titlesNews.get(i),refNews.get(i));
     }
 }
