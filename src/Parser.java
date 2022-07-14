@@ -1,16 +1,25 @@
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
-
 public class Parser {
     public final String URL_CRYPTO = "https://myfin.by/crypto-rates";
     public final String URL_NEWS = "https://ria.ru/";
-    public final String URL_WEATHER = "https://www.gismeteo.ru/catalog/russia/";
+    public  final String URL_QIWI = "https://edge.qiwi.com/sinap/crossRates";
+    public final String URL_HELPIX = "https://helpix.ru/currency/";
+
     public String title;
     private String Url = "";
     private Document document;
@@ -60,13 +69,9 @@ public class Parser {
     }
     public void GetPricesCrypto()
     {
-        Document doc = null;
-        try {
-            doc = Jsoup.connect(URL_CRYPTO).get();
-        } catch (Exception e) {
-            System.out.printf("Произошла непредвиденная ошибка при загрузке страницы:\n%s\n",e.getMessage());
+        Document doc = GetDocument(URL_CRYPTO);
+        if(doc == null)
             return;
-        }
         Elements tdElements = doc.select("td");
         Elements refElements = doc.select("a");
         ArrayList<String> prices = new ArrayList<String>();
@@ -86,13 +91,9 @@ public class Parser {
     }
     public void GetNews()
     {
-        Document doc = null;
-        try {
-            doc = Jsoup.connect(URL_NEWS).get();
-        } catch (Exception e) {
-            System.out.printf("Произошла непредвиденная ошибка при загрузке страницы:\n%s\n",e.getMessage());
+        Document doc = GetDocument(URL_NEWS);
+        if(doc == null)
             return;
-        }
         Elements refElements = doc.select("a");
         ArrayList<String> titlesNews = new ArrayList<String>();
         ArrayList<String> refNews = new ArrayList<String>();
@@ -107,5 +108,72 @@ public class Parser {
         System.out.printf("Новости с сайта - <%s>:\n",URL_NEWS);
         for(int i = 0; i < titlesNews.size(); i++)
             System.out.printf("%d.Заголовок - <%s>.\tСсылка на новость - <%s>\n",i,titlesNews.get(i),refNews.get(i));
+    }
+    public Document GetDocument(String URL)
+    {
+        Document doc = null;
+        try {
+            doc = Jsoup.connect(URL).get();
+        } catch (Exception e) {
+            System.out.printf("Произошла непредвиденная ошибка при загрузке страницы(%s):\n%s\n",URL,e.getMessage());
+            return null;
+        }
+        return doc;
+    }
+    public void GetPricesUSD()
+    {
+        Document documentHelpix = GetDocument(URL_HELPIX);
+        byte[] bytes = null;
+        try {
+             bytes = readParse(URL_QIWI);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        String jsonQiwi = new String(bytes, StandardCharsets.UTF_8);
+        JSONParser parser = new JSONParser();
+        JSONObject json = null;
+        try {
+            json = (JSONObject) parser.parse(jsonQiwi);
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
+        JSONArray jsAr = (JSONArray) json.get("result");
+        JSONObject ObjectUSDQiwi = null;
+        for (int i = 0; i < jsAr.size(); i++)
+        {
+            if(jsAr.get(i).toString().contains("643") && jsAr.get(i).toString().contains("840")) {
+                ObjectUSDQiwi = (JSONObject) jsAr.get(i);
+                break;
+            }
+        }
+
+
+        String USDQiwi = ObjectUSDQiwi.get("rate").toString();
+        System.out.println(USDQiwi);
+        if (documentHelpix == null)
+            return;
+        Elements tdElements = documentHelpix.select("td");
+
+        String USDCB = tdElements.get(8).text();
+        String USDAli = tdElements.get(9).text();
+
+        System.out.printf("CB  \tAli \tQiwi\n%s\t%s\t%s\n",USDCB,USDAli,USDQiwi);
+
+    }
+    public byte[] readParse(String urlPath) throws IOException {
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        byte[] data = new byte[1024];
+        int len = 0;
+        URL url = new URL(urlPath);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        InputStream inStream = conn.getInputStream();
+
+        while ((len = inStream.read(data)) != -1) {
+            outStream.write(data, 0, len);
+
+        }
+        inStream.close();
+        return outStream.toByteArray();
+
     }
 }

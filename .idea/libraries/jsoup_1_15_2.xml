@@ -2,6 +2,7 @@
   <library name="jsoup-1.15.2">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/../../JavaLibs/jsoup/jsoup-1.15.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../JavaLibs/Json-Simple/json-simple-1.1.1.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
